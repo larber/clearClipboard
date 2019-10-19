@@ -1,0 +1,16 @@
+  {
+    "name": "Clear Clipboard",
+    "version": "1.0",
+    "description": "Clears clipboard in incognito mode",
+	"permissions" : ["clipboardWrite"],
+    "manifest_version": 2,
+    "background": {
+      "scripts": ["background.js"],
+      "persistent": false
+    },
+    "icons" : {
+        "128" : "klipper_128.png",
+        "48" : "klipper_48.png",
+        "16" : "klipper_16.png"
+    }
+  }
