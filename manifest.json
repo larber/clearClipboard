@@ -1,7 +1,7 @@
   {
     "name": "Clear Clipboard",
     "author": "Leon Arber",
-    "version": "1.1",
+    "version": "1.2",
     "description": "Clears clipboard after exiting incognito mode",
 	"permissions" : ["clipboardWrite"],
     "manifest_version": 2,
