@@ -1,6 +1,6 @@
 # ClearClipboard
 
-## Jan 2025 Update:  This plugin does not support MV3 and cannot be ported to support it.  MV3 blocks modifying the clipboard without a "user gesture." Closing a window doesn't count so the only way to make it work is to force a popup that a user can click on to clear the clipboard.  This solution is a horrible workflow and ruins the ergonomics of the plugin.  I appreciate the need for security, but the lack of escape hatch for these features shows a lack of respect for users and a nanny mentality. 
+## August 2025 Update: ChatGPT was able to update this plugin to support mv3.  It's an incredibly annoying hack since it now requires creating a small popup window that autocloses.
 
 A Chrome extension to clear your clipboard after exiting an incognito tab or window.  
 
