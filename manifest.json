@@ -5,7 +5,6 @@
     "description": "Clears clipboard after exiting incognito mode",
     "manifest_version": 3,
   "permissions": [
-    "tabs",
     "windows",
     "clipboardWrite"
   ],
