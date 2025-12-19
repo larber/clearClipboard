@@ -1,7 +1,7 @@
 {
   "name": "Clear Clipboard",
   "author": "Leon Arber",
-  "version": "1.4",
+  "version": "1.5",
   "description": "Clears the clipboard after incognito usage.",
   "manifest_version": 3,
   "permissions": [
