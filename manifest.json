@@ -1,27 +1,24 @@
-  {
-    "name": "Clear Clipboard",
-    "author": "Leon Arber",
-    "version": "1.3",
-    "description": "Clears clipboard after exiting incognito mode",
-    "manifest_version": 3,
+{
+  "name": "Clear Clipboard",
+  "author": "Leon Arber",
+  "version": "1.4",
+  "description": "Clears the clipboard after incognito usage.",
+  "manifest_version": 3,
   "permissions": [
     "windows",
+    "storage",
     "clipboardWrite"
   ],
-    "background": {
-    "service_worker": "background.js",
-    "type": "module"
-    },
-  "action": {
-    "default_title": "Incognito Clipboard Cleaner"
+  "background": {
+    "service_worker": "background.js"
   },
-  "web_accessible_resources": [{
-    "resources": ["clear.html", "clear.js"],
-    "matches": ["<all_urls>"]
-  }],
-    "icons" : {
+  "action": {
+    "default_title": "Clear Clipboard"
+  },  
+  "icons" : {
         "128" : "klipper_128.png",
         "48" : "klipper_48.png",
         "16" : "klipper_16.png"
     }
-  }
+
+}

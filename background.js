@@ -1,91 +1,92 @@
-// background.js (MV3 service worker)
+const STORAGE_KEY = "incognitoUsed";
 
-const incognitoTabIds = new Set();
-const incognitoWindowIds = new Set();
+/* ------------------------------
+   Utility helpers
+-------------------------------- */
 
-chrome.windows.onCreated.addListener((win) => {
-  if (win.incognito) incognitoWindowIds.add(win.id);
-});
-
-chrome.windows.onRemoved.addListener(async (windowId) => {
-  if (incognitoWindowIds.delete(windowId)) {
-    await clearClipboardViaPopup();
-  }
-});
-
-chrome.tabs.onCreated.addListener((tab) => {
-  if (tab.incognito) incognitoTabIds.add(tab.id);
-});
-
-chrome.tabs.onRemoved.addListener(async (tabId) => {
-  if (incognitoTabIds.delete(tabId)) {
-    await clearClipboardViaPopup();
-  }
-});
-
-// Seed state in case the service worker restarted
-(async () => {
-  try {
-    const windows = await chrome.windows.getAll({ populate: true });
-    for (const w of windows) {
-      if (!w.incognito) continue;
-      incognitoWindowIds.add(w.id);
-      for (const t of (w.tabs || [])) {
-        if (t.incognito) incognitoTabIds.add(t.id);
-      }
-    }
-  } catch (e) {
-    console.warn('Seed failed:', e);
-  }
-})();
-
-// Create a tiny focused popup to satisfy the Clipboard API "focused document" rule,
-// write an empty string, then close it.
-async function clearClipboardViaPopup() {
-  try {
-    // Open a tiny focused popup (non-incognito is fine; we just need focus)
-    const popup = await chrome.windows.create({
-      url: chrome.runtime.getURL('clear.html'),
-      type: 'popup',
-      focused: true,
-      width: 220,
-      height: 120,
-      left: 10,
-      top: 10
-    });
-
-    // Wait for a success/failure message from the page
-    const ok = await waitForOnce('CLIPBOARD_CLEAR_RESULT', 2000);
-
-    // Close the popup window
-    if (popup && popup.id !== undefined) {
-      try { await chrome.windows.remove(popup.id); } catch (_) {}
-    }
-
-    if (!ok?.ok) {
-      console.warn('Clipboard clear reported failure:', ok?.error || ok);
-    }
-  } catch (err) {
-    console.warn('Failed to clear clipboard via popup:', err);
-  }
+function markIncognitoUsed() {
+  chrome.storage.local.set({ [STORAGE_KEY]: true });
 }
 
-function waitForOnce(type, timeoutMs = 2000) {
-  return new Promise((resolve) => {
-    let timeoutId;
-    function handler(msg, _sender, sendResponse) {
-      if (msg && msg.type === type) {
-        clearTimeout(timeoutId);
-        chrome.runtime.onMessage.removeListener(handler);
-        resolve(msg.payload);
-        sendResponse?.({ received: true });
-      }
-    }
-    chrome.runtime.onMessage.addListener(handler);
-    timeoutId = setTimeout(() => {
-      chrome.runtime.onMessage.removeListener(handler);
-      resolve({ ok: false, error: 'timeout' });
-    }, timeoutMs);
+function clearIncognitoFlag() {
+  chrome.storage.local.remove(STORAGE_KEY);
+}
+
+function getIncognitoFlag() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(STORAGE_KEY, result => {
+      resolve(Boolean(result[STORAGE_KEY]));
+    });
   });
 }
+
+function hasIncognitoWindows() {
+  return new Promise(resolve => {
+    chrome.windows.getAll({}, windows => {
+      resolve(windows.some(w => w.incognito));
+    });
+  });
+}
+
+/* ------------------------------
+   Clipboard cleanup trigger
+-------------------------------- */
+
+async function attemptClipboardCleanup() {
+  const incognitoUsed = await getIncognitoFlag();
+  if (!incognitoUsed) return;
+
+  const stillIncognito = await hasIncognitoWindows();
+  if (stillIncognito) return;
+
+  // Safe, stable moment — try to clear clipboard
+  chrome.windows.create(
+    {
+      url: "clear.html",
+      type: "popup",
+      focused: true,
+      width: 1,
+      height: 1
+    },
+    () => {
+      // Regardless of popup success, we do not retry endlessly
+      clearIncognitoFlag();
+    }
+  );
+}
+
+/* ------------------------------
+   Incognito detection
+-------------------------------- */
+
+chrome.windows.onCreated.addListener(window => {
+  if (window.incognito) {
+    markIncognitoUsed();
+  }
+});
+
+chrome.windows.onRemoved.addListener(() => {
+  // Opportunistic check only — no teardown assumptions
+  attemptClipboardCleanup();
+});
+
+/* ------------------------------
+   Opportunistic wakeups
+-------------------------------- */
+
+chrome.runtime.onStartup.addListener(() => {
+  attemptClipboardCleanup();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  attemptClipboardCleanup();
+});
+
+chrome.tabs.onActivated.addListener(() => {
+  attemptClipboardCleanup();
+});
+
+chrome.tabs.onUpdated.addListener(() => {
+  attemptClipboardCleanup();
+});
 
