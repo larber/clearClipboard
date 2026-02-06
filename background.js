@@ -32,6 +32,13 @@ function hasIncognitoWindows() {
    Clipboard cleanup trigger
 -------------------------------- */
 
+let cleanupTimer = null;
+
+function scheduleClipboardCleanup() {
+  clearTimeout(cleanupTimer);
+  cleanupTimer = setTimeout(attemptClipboardCleanup, 500);
+}
+
 async function attemptClipboardCleanup() {
   const incognitoUsed = await getIncognitoFlag();
   if (!incognitoUsed) return;
@@ -40,19 +47,14 @@ async function attemptClipboardCleanup() {
   if (stillIncognito) return;
 
   // Safe, stable moment — try to clear clipboard
-  chrome.windows.create(
-    {
-      url: "clear.html",
-      type: "popup",
-      focused: true,
-      width: 1,
-      height: 1
-    },
-    () => {
-      // Regardless of popup success, we do not retry endlessly
-      clearIncognitoFlag();
-    }
-  );
+  clearIncognitoFlag();
+  chrome.windows.create({
+    url: "clear.html",
+    type: "popup",
+    focused: true,
+    width: 1,
+    height: 1
+  });
 }
 
 /* ------------------------------
@@ -66,8 +68,7 @@ chrome.windows.onCreated.addListener(window => {
 });
 
 chrome.windows.onRemoved.addListener(() => {
-  // Opportunistic check only — no teardown assumptions
-  attemptClipboardCleanup();
+  scheduleClipboardCleanup();
 });
 
 /* ------------------------------
@@ -75,18 +76,18 @@ chrome.windows.onRemoved.addListener(() => {
 -------------------------------- */
 
 chrome.runtime.onStartup.addListener(() => {
-  attemptClipboardCleanup();
+  scheduleClipboardCleanup();
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  attemptClipboardCleanup();
+  scheduleClipboardCleanup();
 });
 
 chrome.tabs.onActivated.addListener(() => {
-  attemptClipboardCleanup();
+  scheduleClipboardCleanup();
 });
 
 chrome.tabs.onUpdated.addListener(() => {
-  attemptClipboardCleanup();
+  scheduleClipboardCleanup();
 });
 
